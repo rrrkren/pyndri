@@ -3,6 +3,10 @@ pyndri
 
 pyndri is a Python interface to the Indri search engine (http://www.lemurproject.org/indri/).
 
+To install:
+
+    [sudo] python setup.py install
+    
 How to iterate over all documents in a repository:
 
     import pyndri

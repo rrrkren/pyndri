@@ -258,6 +258,57 @@ static PyObject* Index_document(Index* self, PyObject* args) {
     return PyTuple_Pack(2, PyString_FromString(ext_document_id.c_str()), terms);
 }
 
+static PyObject* Index_term_doc_count(Index* self, PyObject* args) {
+    int int_document_id;
+    int int_term_id;
+
+    if (!PyArg_ParseTuple(args, "ii",&int_term_id, &int_document_id)) {
+        return NULL;
+    }
+
+    if (int_document_id < self->index_->documentBase() ||
+        int_document_id >= self->index_->documentMaximum()) {
+        PyErr_SetString(
+            PyExc_IndexError,
+            "Specified internal document identifier is out of bounds.");
+
+        return NULL;
+    }
+
+    const indri::index::TermList* term_list = 0;
+
+    try {
+        term_list = self->index_->termList(int_document_id);
+    } catch (const lemur::api::Exception& e) {
+        PyErr_SetString(PyExc_IOError, e.what().c_str());
+
+        if (term_list != 0) {
+            delete term_list;
+        }
+
+        return NULL;
+    }
+
+    indri::utility::greedy_vector<lemur::api::TERMID_T>::const_iterator term_it =
+        term_list->terms().begin();
+
+    int term_count = 0;
+    Py_ssize_t pos = 0;
+    for (; term_it != term_list->terms().end(); ++term_it, ++pos) {
+//PyTuple_SetItem(terms, pos, PyInt_FromLong(*term_it));
+        if ((*term_it) == int_term_id) term_count++;
+
+    }
+
+    delete term_list;
+    
+    PyObject* res = Py_BuildValue("i", term_count);
+
+    return res;
+    
+    
+}
+
 static PyObject* Index_document_base(Index* self) {
     return PyInt_FromLong(self->index_->documentBase());
 }
@@ -528,6 +579,9 @@ static PyMethodDef Index_methods[] = {
 
     {"term_count", (PyCFunction) Index_term_count, METH_VARARGS,
      "Return the term frequency for a term."},
+
+    {"term_doc_count", (PyCFunction) Index_term_doc_count, METH_VARARGS,
+     "Return the term frequency for a term within a document."},
 
     {"query", (PyCFunction) Index_run_query, METH_VARARGS | METH_KEYWORDS,
      "Queries an Indri index."},
